@@ -35,12 +35,12 @@ const int touchPin1 = 4;
 const int touchPin2 = 15;
 const int ledPin1 = 17;
 const int ledPin2 = 16;
-const int threshold = 40;
+const int threshold = 20;
 int touchValue1;
 int touchValue2;
 
 //Configurar pines de LCD
-LiquidCrystal lcd(19, 23, 12, 5, 18, 22);
+LiquidCrystal lcd(19, 23, 26, 32, 18, 22);
 
 
 AlarmId id;
@@ -78,10 +78,13 @@ void setLocalTime()
 		int monNow = int (timeinfo.tm_mon) + 1; //Número entero que representa el número de mes actual
 		int yearNow = int (timeinfo.tm_year) - 100; //Número entero con los últimos dos dígitos del año
 		setTime(hourNow, minuteNow, secondNow, dayNow, monNow, yearNow); //Configura la fecha y hora
-		Serial.println(&timeinfo, "%A, %B %d %Y %H:%M:%S");
-		lcd.setCursor(0, 0);
-		lcd.print(String(hourNow) + ":" + String(minuteNow) + ":" + String(secondNow) + " " + String(dayNow) + "/" + String(monNow) + "/" + String(yearNow)); //Imprime fecha y hora en la LCD
+    printLocalTime();
 	}
+}
+
+void printLocalTime() {
+    lcd.setCursor(0, 0);
+    lcd.print(String(hour()) + ":" + String(minute()) + " " + String(day()) + "/" + String(month()) + "/" + String(year())); //Imprime fecha y hora en la LCD
 }
 
 // Definición de función callback para cuando el servidor NTP responde la solicitud y devuelve la hora
@@ -101,6 +104,7 @@ bool sensor_toque(int touchPin, int ledPin) {
 	int touchValue = touchRead(touchPin);
 	if (touchValue < threshold) {
 		// turn LED on
+    Serial.println(touchValue);
 		digitalWrite(ledPin, HIGH);
 		return true;
 	}
@@ -180,10 +184,10 @@ void setup() {
 
 //Función loop, se ejecuta todo el tiempo
 void loop() {
-	setLocalTime(); //Actualiza la hora en tiempo real todo el tiempo
+	printLocalTime(); //Actualiza la hora en tiempo real todo el tiempo
 	sensor_toque(touchPin1, ledPin1); //Sensa los pines táctiles
 	sensor_toque(touchPin2, ledPin2);
-	Alarm.delay(600); //Esperar
+	Alarm.delay(200); //Esperar
 }
 
 //Función callback de la alarma, toca una melodía mientras que no se estén tocando ambos pines táctiles a la vez
@@ -191,10 +195,10 @@ void playMelody() {
 	while (!(sensor_toque(touchPin1, ledPin1)) && !(sensor_toque(touchPin2, ledPin2))) {
 		for (int thisNote = 0; thisNote < 8; thisNote++) {
 		int noteDuration = 1000 / noteDurations[thisNote];
-		tone(2, melody[thisNote], noteDuration);
+		tone(25, melody[thisNote], noteDuration);
 		int pauseBetweenNotes = noteDuration * 1.30;
 		delay(pauseBetweenNotes);
-		noTone(2);
+		noTone(25);
 		if (sensor_toque(touchPin1, ledPin1) && sensor_toque(touchPin2, ledPin2)) {
 			break;
 		}
