@@ -4,6 +4,7 @@
 #include <TimeAlarms.h>
 #include <LiquidCrystal.h>
 #include <WiFi.h>
+#include <WiFiMulti.h>
 #include "time.h"
 #include "sntp.h"
 #ifdef ESP32
@@ -16,9 +17,6 @@
 #include <ESPAsyncWebSrv.h>
 
 //Definir variables y constantes globales
-//SSID y Contraseña para conectarse a la red WiFi
-const char* ssid       = "Paula";
-const char* password   = "12345678";
 
 //Configuración del servidor de la hora y timezone
 const char* ntpServer1 = "pool.ntp.org";
@@ -42,6 +40,8 @@ int touchValue2;
 //Configurar pines de LCD
 LiquidCrystal lcd(19, 23, 26, 32, 18, 22);
 
+WiFiMulti wifiMulti;
+const uint32_t connectTimeoutMs = 15000;
 
 AlarmId id;
 
@@ -78,13 +78,14 @@ void setLocalTime()
 		int monNow = int (timeinfo.tm_mon) + 1; //Número entero que representa el número de mes actual
 		int yearNow = int (timeinfo.tm_year) - 100; //Número entero con los últimos dos dígitos del año
 		setTime(hourNow, minuteNow, secondNow, dayNow, monNow, yearNow); //Configura la fecha y hora
-    printLocalTime();
+	printLocalTime();
 	}
 }
 
 void printLocalTime() {
-    lcd.setCursor(0, 0);
-    lcd.print(String(hour()) + ":" + String(minute()) + " " + String(day()) + "/" + String(month()) + "/" + String(year())); //Imprime fecha y hora en la LCD
+	lcd.setCursor(0, 0);
+	lcd.print(String(hour()) + ":" + String(minute()) + " " + String(day()) + "/" + String(month()) + "/" + String(year())); //Imprime fecha y hora en la LCD
+	Serial.println(String(hour()) + ":" + String(minute()) + " " + String(day()) + "/" + String(month()) + "/" + String(year()));
 }
 
 // Definición de función callback para cuando el servidor NTP responde la solicitud y devuelve la hora
@@ -104,7 +105,7 @@ bool sensor_toque(int touchPin, int ledPin) {
 	int touchValue = touchRead(touchPin);
 	if (touchValue < threshold) {
 		// turn LED on
-    Serial.println(touchValue);
+	//Serial.println(touchValue);
 		digitalWrite(ledPin, HIGH);
 		return true;
 	}
@@ -126,20 +127,21 @@ void setup() {
 	sntp_servermode_dhcp(1);
 	configTime(gmtOffset_sec, daylightOffset_sec, ntpServer1, ntpServer2); // Configurar hora y timezone
 
-	//Conectarse a WiFi
-	Serial.printf("Connecting to %s ", ssid);
-	WiFi.mode(WIFI_STA);
-	WiFi.begin(ssid, password);
-	while (WiFi.status() != WL_CONNECTED) {
-			delay(500);
-			Serial.print(".");
-	}
-	Serial.println(" CONNECTED");
+  //Configura una lista de SSIDs y contraseñas para conectarse
+	wifiMulti.addAP("Paula", "12345678");
+	wifiMulti.addAP("TeleCentro-acff", "JJZATZ4MMNJZ");
+	wifiMulti.addAP("elthom", "wengchan7");
 
-	Serial.print("IP Address: ");
+	//Conectarse a WiFi
+	WiFi.mode(WIFI_STA);
+	if(wifiMulti.run() == WL_CONNECTED) {
+	Serial.println("");
+	Serial.println("WiFi connected");
+	Serial.println("IP address: ");
 	Serial.println(WiFi.localIP());
 	lcd.setCursor(0,1);
 	lcd.println(WiFi.localIP());
+}
 
 	//Al acceder a ruta "/" del servidor web
 	server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
@@ -185,6 +187,14 @@ void setup() {
 //Función loop, se ejecuta todo el tiempo
 void loop() {
 	printLocalTime(); //Actualiza la hora en tiempo real todo el tiempo
+	if (wifiMulti.run(connectTimeoutMs) == WL_CONNECTED) {
+	Serial.println(WiFi.localIP());
+	lcd.setCursor(0,1);
+	lcd.println(WiFi.localIP());
+	}
+	else {
+	Serial.println("WiFi not connected!");
+	}
 	sensor_toque(touchPin1, ledPin1); //Sensa los pines táctiles
 	sensor_toque(touchPin2, ledPin2);
 	Alarm.delay(200); //Esperar
