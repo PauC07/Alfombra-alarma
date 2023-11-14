@@ -9,7 +9,7 @@ El proyecto consiste en una alarma con un diseño de alfombra. Su objetivo es qu
 <li>1 Buzzer</li>
 <li>2 LEDs</li>
 <li>2 resistencias 470Ω</li>
-<li>1 resistencia 2.2 kΩ</li>
+<li>1 resistencia 3.3 kΩ</li>
 </ul>
 
 **Servidor:**
